@@ -37,6 +37,7 @@ C     *******************************************
 C     call solver 
 C     *******************************************
       time = dtime(dum)      
+      
       call rkmet(x,u,unew,v,vnew,dx,dt,tmax,n,iprint)
 C     call imrkmet(x,u,unew,v,vnew,dx,dt,tmax,n,iprint)
 
@@ -190,7 +191,8 @@ C     files
             
       return
       end
-                 
+
+      
 C     =========================================
       subroutine  imrkmet(x,u,unew,v,vnew,dx,dt,tmax,n,iprint)      
       implicit none
@@ -372,9 +374,8 @@ C     plot initial value
 
       
       do while (tc.lt.tmax)         
-
-         call rk4(u,unew,v,vnew,dx,dt,n,info)
-
+         call rk4(u,unew,v,vnew,dx,dt,n,info)         
+C         call rk38(u,unew,v,vnew,dx,dt,n,info)
          
          if (iprint.eq.0 ) then
             if( mod(iter,50).eq.0) then
@@ -401,7 +402,7 @@ C     plot initial value
             u(i) = unew(i)                      
             v(i) = vnew(i)            
          enddo
-         
+                  
          tc = tc + dt 
          iter = iter + 1
          
@@ -412,6 +413,7 @@ C     plot initial value
       call plotc(x, qp, qn, n, qplot)
       call plotc(x, gp, gn, n, gplot)
       
+      write(*,*) 0.1D-03      
       return
       end
       
@@ -781,9 +783,183 @@ C     Combine them to estimate the solution at time  tnew = t + dt
             
       return
       end
-           
+
+
+C     ==========================================
+C     other method 
+C     ==========================================
+      
+      subroutine rk38(u,unew,v,vnew,dx,dt,n,info)
+      implicit none
+C     scalars
+      double precision dx,dt
+C     arrays 
+      double precision  u(n), unew(n), v(n), vnew(n)
+      integer  n, info
+
+C     local arrays
+      double precision k1f1(n), k1f2(n), k1f3(n), k1f4(n),
+     &     k2f1(n), k2f2(n), k2f3(n), k2f4(n),uk(n),vk(n)
+
+C     local scalar
+      
+      integer i
+      info = 0
+      
+C     Get four  sample value of the revivative 
+
+C     stage 1
+
+      call funf1(u, v, dx, n, k1f1 )      
+      call funf2(u, dx, n, k2f1 )
+      
+C     stage 2
+      do i=1,n
+         uk(i) = u(i) +  dt * k1f1(i)/3
+         vk(i) = v(i) +  dt * k2f1(i)/3
+      enddo
+      
+      call funf1(uk, vk, dx, n, k1f2)
+      call funf2(uk, dx, n, k2f2)
+      
+C     stage 3
+      do i=1,n
+         uk(i) = u(i) + dt *(- k1f1(i)/3 + k1f2(i) )
+         vk(i) = v(i) + dt *(- k2f1(i)/3 + k2f2(i))
+      enddo
+                  
+      call funf1(uk, vk, dx, n, k1f3)
+      call funf2(uk, dx, n, k2f3)
+C     stage 4
+      
+      do i=1,n
+         uk(i) = u(i) +  dt *(k1f1(i) -  k1f2(i) 
+     &       +  k1f3(i))
+         vk(i) = v(i) +  dt *(k2f1(i) -  k2f2(i) 
+     &       +  k2f3(i))
+      enddo
+            
+      call funf1(uk, vk, dx, n, k1f4)                
+      call funf2(uk, dx,n, k2f4)
+
+C     Combine them to estimate the solution at time  tnew = t + dt 
+      
+      do i=1,n
+         unew(i) = u(i) + dt*(k1f1(i) + 3 *k1f2(i) 
+     &       + 3*k1f3(i) +  k1f4(i) )/8.0   
+         
+         vnew(i) = v(i) + dt*( k2f1(i) + 3*k2f2(i) 
+     &       + 3*k2f3(i) + k2f4(i) )/8.0 
+      enddo
+            
+      return
+      end
+  
+      subroutine rk6(u,unew,v,vnew,dx,dt,n,info)
+      implicit none
+C     scalars
+      double precision dx,dt
+C     arrays 
+      double precision  u(n), unew(n), v(n), vnew(n)
+      integer  n, info
+
+C     local arrays
+      double precision k1f1(n), k1f2(n), k1f3(n), k1f4(n),
+     &      k1f5(n),k1f6(n),
+     &      k2f1(n), k2f2(n), k2f3(n),k2f4(n),k2f5(n),k2f6(n), 
+     &      uk(n),vk(n)
+
+C     local scalar
+      
+      integer i
+      info = 0
+      
+C     Get four  sample value of the revivative 
+
+C     stage 1
+
+      call funf1(u, v, dx, n, k1f1 )      
+      call funf2(u, dx, n, k2f1 )
+      
+C     stage 2
+      do i=1,n
+         uk(i) = u(i) +  dt * k1f1(i)/3
+         vk(i) = v(i) +  dt * k2f1(i)/3
+      enddo
+      
+      call funf1(uk, vk, dx, n, k1f2)
+      call funf2(uk, dx, n, k2f2)
+      
+C     stage 3
+      do i=1,n
+         uk(i) = u(i) + dt *( k1f2(i)*2.0/3. )
+         vk(i) = v(i) + dt *( k2f2(i)*2.0/3 )
+      enddo
+                  
+      call funf1(uk, vk, dx, n, k1f3)
+      call funf2(uk, dx, n, k2f3)
+C     stage 4
+      
+      do i=1,n
+         uk(i) = u(i) +  dt *(-167765027./45900120.*k1f1(i) 
+     &       + 43549./7217. * k1f2(i) 
+     &       - 30361./14840. * k1f3(i))
+         vk(i) = v(i) +  dt *(-167765027./45900120. * k2f1(i)  
+     &          + 43549./7217.*  k2f2(i) 
+     &        - 30361./14840. * k2f3(i))
+      enddo
+            
+      call funf1(uk, vk, dx, n, k1f4)                
+      call funf2(uk, dx,n, k2f4)
+      
+C     stage 5
+      
+      do i=1,n
+         uk(i) = u(i) +  dt *(-1.820402999324849*k1f1(i) 
+     &       + 35525./9169. * k1f2(i) 
+     &       - 27646./19955. * k1f3(i)  - 10643./155037.*k1f4(i)  )
+         vk(i) = v(i) +  dt *(-1.820402999324849*k2f1(i)  
+     &          + 35525./9169. *  k2f2(i) 
+     &         - 27646./19955. * k2f3(i) - 10643./155037.*k1f4(i) )
+      enddo
+            
+      call funf1(uk, vk, dx, n, k1f5)                
+      call funf2(uk, dx,n, k2f5)      
+      
+C     stage 6
+      
+      do i=1,n
+         uk(i) = u(i) +  dt *(-6.4504802562695030 *k1f1(i) 
+     &       + 736810./53619. * k1f2(i) 
+     &       - 28702./5227. * k1f3(i) 
+     &         -7.0/5. *  k1f4(i)
+     &         + 3.0 / 5.0 * k1f5(i) )
+         vk(i) = v(i) +  dt *(-6.4504802562695030 * k2f1(i)  
+     &       + 736810./53619.*  k2f2(i) 
+     &        -28702./5227. * k2f3(i)
+     &         - 7./5. * k2f4(i)
+     &        + 3.0/5.0 * k2f5(i))
+      enddo
+            
+      call funf1(uk, vk, dx, n, k1f6)                
+      call funf2(uk, dx,n, k2f6)
+
+C     Combine them to estimate the solution at time  tnew = t + dt 
+      
+      do i=1,n
+         unew(i) = u(i) + dt*(14* k1f1(i) + 48 *k1f2(i) 
+     &      +162*k1f3(i) + 33* k1f4(i)-125*k1f5(i) + 12*k1f6(i))/144.   
+         
+         vnew(i) = v(i) + dt*(14*k2f1(i)+48*k2f2(i) 
+     &       + 162*k2f3(i) + 33*k2f4(i)-125*k2f5(i)+12*k2f5(i))/144.0 
+      enddo
+            
+      return
+      end
+   
+      
 C     ==========================================      
-      subroutine  funf1( u,v,dx,n,fone)
+      subroutine funf1( u,v,dx,n,fone)
       implicit none
 C     scalars
       double precision dx
