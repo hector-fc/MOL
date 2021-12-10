@@ -164,7 +164,7 @@ plt.legend(bbox_to_anchor=(1.0,1.0),loc=1,fontsize=10, borderaxespad = 0.)
 #
 
 plt.subplot(212)
-plt.plot(ener[:,0],ener[:,5],'-k',lw =1.0,label=r'$\gamma_{+}(t)$')
+plt.plot(ener[:,0],ener[:,5],'-k',lw =1.0,label=r'$\tilde{q}_{2}(t)$')
 plt.axis([0.0,tmax,-500,500])
 plt.grid(True)
 # legend
@@ -192,7 +192,7 @@ plt.legend(bbox_to_anchor=(1.0,1.0),loc=1,fontsize=10, borderaxespad = 0.)
 #====================================
 #
 plt.subplot(212)
-plt.plot(ener[:,0],ener[:,6],'-k',lw =1.0,label=r'$\gamma_{-}(t)$')
+plt.plot(ener[:,0],ener[:,6],'-k',lw =1.0,label=r'$q_{2}(t)$')
 plt.axis([0.0,tmax,-100,100])
 plt.grid(True)
 # legend
@@ -203,13 +203,10 @@ fig5.subplots_adjust(hspace=.7)
 fig5.show()
 
 
+fig1.savefig('kisol.eps', dpi=300, format='eps')
+#fig2.savefig('qp.eps')
+#fig3.savefig('qn.eps')
+fig4.savefig('q2p.eps')
+fig5.savefig('q2n.eps')
 
-
-fig1.savefig('kisol.svg')
-fig2.savefig('qp.svg')
-fig3.savefig('qn.svg')
-fig4.savefig('gp.svg')
-fig5.savefig('gn.svg')
-
-input()
-
+enter = input("enter")

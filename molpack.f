@@ -135,6 +135,17 @@ C     *******************************************
          rx0   = 12
          rele  = 0.0
          rc    =-0.5
+      else if(soliton.eq.'KKlv') then     
+         leta1 =   1
+         leta2 =   1
+         lx0   =  -12
+         lele  =  -1 
+         lc    =  0.3
+         reta1 =  1                
+         reta2 =  1                
+         rx0   =  12
+         rele  =  0.0
+         rc    = -0.6          
       else if(soliton.eq.'aKK') then     
          leta1 =  -1
          leta2 =  1
@@ -373,9 +384,9 @@ C     plot initial value
       gplot = gplot + 1
 
       
-      do while (tc.lt.tmax)         
+      do while (tc.lt.tmax)
          call rk4(u,unew,v,vnew,dx,dt,n,info)         
-C         call rk38(u,unew,v,vnew,dx,dt,n,info)
+C     call rk38(u,unew,v,vnew,dx,dt,n,info)
          
          if (iprint.eq.0 ) then
             if( mod(iter,50).eq.0) then
@@ -395,7 +406,7 @@ C         call rk38(u,unew,v,vnew,dx,dt,n,info)
          endif
          
          if (mod(iter,10).eq.0 ) then
-            call energy(tc,u,v,teng,tpot,qp,qn,gp,gn,dx,n,info )            
+            call energyQ2(tc,u,v,teng,tpot,qp,qn,gp,gn,dx,n,info )            
          endif
          
          do i=1,n
@@ -489,6 +500,7 @@ C     *************************************
       qp(n) = 2.0 * ( 2.0*w20 - dfunv(u(1)) )*funv(u(n))      
       qn(n) = 4.0 * ( (v(n)-v(n-1))/dx)*4.0*funv(u(n))
       
+
       gp(n) = ( v(n)**2 - ((u(n)-u(n-1))/dx)**2) * dfunv(u(n))*v(n)      
       gn(n) = ( v(n)**2 - ((u(n)-u(n-1))/dx)**2)*      
      &     dfunv(u(n)) * ( (u(n)-u(n-1))/dx )   
@@ -507,11 +519,112 @@ C     *************************************
       
       return
       end
-
       
 C     ==========================================
       
+
+      subroutine energyQ2(t,u,v,teng,tpot,qp,qn, gp, gn,dx,n,info) 
+      implicit none
+C     scalars      
+      double precision t,dx  
+      integer  n, info
+      double precision   u(n),v(n)
+            
+C     local scalars 
+      integer i
+      double precision teng(n),tpot(n),qp(n),qn(n),gp(n),gn(n)
+      double precision funv, int1, int2, int3, int4, dx2, w20,
+     &     dfunv, intgp, intgn
       
+      external funv, dfunv
+     
+      info  = 0
+      dx2 = dx*dx 
+            
+      teng(1) = 0.5*( v(1) )**2 + 0.5*((u(2)-u(1))/dx)**2 +
+     &     funv( u(1))
+
+      tpot(1)  = v(1)* ( (u(2)-u(1))/dx)
+           
+      w20 = ( u(1) - 2.0*u(2) + u(3) )/dx2
+      
+C     *******************************************      
+      qp(1) = 2.0 * ( 2.0*w20 - dfunv(u(1))) * funv(u(1))
+      
+      qn(1) = 4.0 * ((v(2)-v(1))/dx)*funv(u(1))
+      
+C     *********************************************
+      gp(1) = 2.0* ( v(1) + ((u(2)-u(1))/dx)) * (
+      
+     &     w20 + (v(2)-v(1))/dx )
+      
+      gn(1) = 2.0* ( v(1) - ((u(2)-u(1))/dx)) * (
+      
+     &     w20 - ( v(2)-v(1))/dx )
+
+C     *********************************************
+      do i = 2,n-1
+
+         w20 = ( u(i-1) - 2.0*u(i) + u(i+1) )/dx2
+                           
+         teng(i)= 0.5*( v(i))**2 + 0.5*( (u(i+1)-u(i) )/dx)**2
+         
+     &        + funv(u(i))
+         
+         tpot(i) = v(i) * (u(i+1)-u(i))/dx
+
+C     *************************************         
+         qp(i) = 2.0 * ( 2.0*w20 - dfunv(u(i)) ) * funv(u(i))
+         
+         qn(i) = 4.0 * ( (v(i+1) - v(i-1))/(2*dx)) * funv(u(i))
+
+C     *************************************
+         
+         gp(i) =  2.0*(v(i)+(( u(i+1)-u(i-1))/(2*dx)))* (
+         
+     &        w20 + ( v(i+1) - v(i-1))/(2*dx) )
+         
+         gn(i)  = 2.0*(v(i)-(( u(i+1)-u(i-1))/(2*dx)))* (
+         
+     &        w20 - ( v(i+1) - v(i-1))/(2*dx) )
+                  
+      enddo
+
+
+      
+      teng(n) =  0.5*(v(n))**2  +
+     &     0.5*((u(n) - u(n-1))/dx)**2 + funv(u(n)) 
+         
+      tpot(n) = v(n) * (u(n)-u(n-1))/dx
+      
+      w20 = ( u(n-2) - 2.0*u(n-1) + u(n) )/dx2
+      
+      qp(n) = 2.0 * ( 2.0*w20 - dfunv(u(1)) )*funv(u(n))      
+      qn(n) = 4.0 * ( (v(n)-v(n-1))/dx)*4.0*funv(u(n))
+      
+      gp(n) =  2.0* ( v(n) + ((u(n)-u(n-1))/dx)) * ( 
+     &     w20 + (v(n)-v(n-1))/dx)           
+
+      gn(n) = 2.0* ( v(n) - ((u(n)-u(n-1))/dx)) * ( 
+     &     w20 - (v(n)-v(n-1))/dx )           
+      
+            
+      call itrap(teng,n,dx,int1)
+      call itrap(tpot,n,dx,int2)
+      call itrap(qp,n,dx,int3)
+      call itrap(qn,n,dx,int4) 
+      call itrap(gp,n,dx,intgp) 
+      call itrap(gn,n,dx,intgn) 
+      
+      open(11, FILE='energy.txt',ACCESS='APPEND',FORM='FORMATTED')      
+      write(11,*) t, int1, int2, int3, int4, intgp, intgn 
+      close(11)
+      
+      return
+      end
+      
+C     ==========================================
+            
       subroutine itrap(fvec,n,dx,out)
       implicit none
 C     scalars
@@ -552,8 +665,6 @@ C     local scalars
       end
       
 C     ==========================================
-
-
       
       subroutine  plotc(x, u, v, n, uci ) 
       implicit none
@@ -599,15 +710,11 @@ C     local arrays
 
       double precision unew0(n), vnew0(n), f1new0(n), f2new0(n),f1m1(n),
      &     f2m1(n), f1m2(n),f2m2(n), f1m3(n),f2m3(n), f1(n),f2(n)
-      
       double precision norm
-
       iiter = 0
       tol = 0.0001
       norm = 1
-      
-
-      
+            
       call funf1(u, v, dx, n, f1)
       call funf2(u, dx, n, f2)
       
@@ -669,8 +776,7 @@ C     Iner loop
 
       
 C     ==========================================      
-C     ==========================================
-      
+C     ==========================================      
       subroutine mrk4(u,um1,um2,um3,unew,v,vm1,vm2,vm3,vnew,
      &     dx,dt,n,info)
       
@@ -688,9 +794,7 @@ C     local arrays
 
       double precision  f1m1(n),f2m1(n), f1m2(n),f2m2(n),
      &     f1m3(n),f2m3(n), f1(n),f2(n)
-
-      info = 1
-      
+      info = 1      
       call funf1(u, v, dx, n, f1)
       call funf2(u, dx, n, f2)
       
@@ -709,12 +813,10 @@ C     local arrays
          
          vnew(i) = v(i) + dt*( 55.0 * f2(i)
      &        - 59.0*f2m1(i) + 37.0*f2m2(i) - 9.0*f2m3(i))/24.0            
-      enddo
-                  
+      enddo                  
       return                     
       end
 
-      
 C     ==========================================                
 C     ==========================================
       
@@ -730,13 +832,11 @@ C     local arrays
       double precision k1f1(n), k1f2(n), k1f3(n), k1f4(n),
      &     k2f1(n), k2f2(n), k2f3(n), k2f4(n),uk(n),vk(n)
 
-C     local scalar
-      
+C     local scalar      
       integer i
       info = 0
       
 C     Get four  sample value of the revivative 
-
 C     stage 1
 
       call funf1(u, v, dx, n, k1f1 )      
@@ -744,8 +844,8 @@ C     stage 1
       
 C     stage 2
       do i=1,n
-         uk(i) = u(i) +  0.5 * dt * k1f1(i)
-         vk(i) = v(i) +  0.5 * dt * k2f1(i)
+         uk(i) = u(i) +  0.50D0 * dt * k1f1(i)
+         vk(i) = v(i) +  0.50D0 * dt * k2f1(i)
       enddo
       
       call funf1(uk, vk, dx, n, k1f2)
@@ -753,9 +853,10 @@ C     stage 2
       
 C     stage 3
       do i=1,n
-         uk(i) = u(i) +  0.5 * dt * k1f2(i)
-         vk(i) = v(i) +  0.5 * dt * k2f2(i)
+         uk(i) = u(i) +  0.50D0 * dt * k1f2(i)
+         vk(i) = v(i) +  0.50D0 * dt * k2f2(i)         
       enddo
+      
                   
       call funf1(uk, vk, dx, n, k1f3)
       call funf2(uk, dx, n, k2f3)
@@ -783,7 +884,6 @@ C     Combine them to estimate the solution at time  tnew = t + dt
             
       return
       end
-
 
 C     ==========================================
 C     other method 
@@ -877,7 +977,7 @@ C     local scalar
 C     Get four  sample value of the revivative 
 
 C     stage 1
-
+      
       call funf1(u, v, dx, n, k1f1 )      
       call funf2(u, dx, n, k2f1 )
       
@@ -1087,15 +1187,19 @@ C     scalars
       double precision t,rho,x,eta1,eta2,x0,ele,c
       
 C     local scalars
-      double precision h
-      
+      double precision h,tm1, tm2,tm3
       h = 0.001
       
-      dphi = (phi(t-2*h,x, rho,eta1,eta2,x0,ele,c) -
-     &     4 * phi(t-h,x, rho,eta1,eta2,x0,ele,c) +
-     &     3 * phi(t, x, rho,eta1,eta2,x0,ele,c))/(2.0*h)
-      
-      return      
+      tm1 =  t - h
+      tm2 =  t - 2.0D0 *h
+      tm3 =  t - 3.0D0 *h
+            
+      dphi = ( - 2.0 * phi(tm3,x, rho,eta1,eta2,x0,ele,c) +
+     &     9.0 * phi(tm2,x, rho,eta1,eta2,x0,ele,c) -
+     &     18.0 * phi(tm1,x, rho,eta1,eta2,x0,ele,c) +
+     &     11.0 * phi(t, x, rho,eta1,eta2,x0,ele,c) )/(6.0D0*h)
+                 
+      return 
       end
       
 C     ==========================================     

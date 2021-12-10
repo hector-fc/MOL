@@ -9,4 +9,4 @@ molpack.o: molpack.f
 	gfortran $(G77FLAGS) $<
 
 clean:
-	rm -f *.o *.txt *.svg molpack molpack.out
+	rm -f *.o *.txt *.eps molpack molpack.out
